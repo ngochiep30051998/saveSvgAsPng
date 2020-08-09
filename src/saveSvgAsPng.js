@@ -1,4 +1,4 @@
-(function() {
+(function () {
   const out$ = typeof exports != 'undefined' && exports || typeof define != 'undefined' && {} || this || window;
   if (typeof define !== 'undefined') define('save-svg-as-png', [], () => out$);
   out$.default = out$;
@@ -27,7 +27,7 @@
       if (isElement(el)) resolve(el)
       else reject(new Error(`an HTMLElement or SVGElement is required; got ${el}`));
     })
-  const isExternal = url => url && url.lastIndexOf('http',0) === 0 && url.lastIndexOf(window.location.host) === -1;
+  const isExternal = url => url && url.lastIndexOf('http', 0) === 0 && url.lastIndexOf(window.location.host) === -1;
 
   const getFontMimeTypeFromUrl = fontUrl => {
     const formats = Object.keys(fontFormats)
@@ -61,7 +61,7 @@
       height: height || getDimension(el, clone, 'height')
     };
     else if (el.getBBox) {
-      const {x, y, width, height} = el.getBBox();
+      const { x, y, width, height } = el.getBBox();
       return {
         width: x + width,
         height: y + height
@@ -86,14 +86,14 @@
     for (let i = 0; i < byteString.length; i++) {
       intArray[i] = byteString.charCodeAt(i);
     }
-    return new Blob([buffer], {type: mimeString});
+    return new Blob([buffer], { type: mimeString });
   };
 
   const query = (el, selector) => {
     if (!selector) return;
     try {
       return el.querySelector(selector) || el.parentNode && el.parentNode.querySelector(selector);
-    } catch(err) {
+    } catch (err) {
       console.warn(`Invalid CSS selector "${selector}"`, err);
     }
   };
@@ -108,8 +108,8 @@
     if (!url || url.match(/^data:/) || url === 'about:blank') return;
     const fullUrl =
       url.startsWith('../') ? `${href}/../${url}`
-      : url.startsWith('./') ? `${href}/.${url}`
-      : url;
+        : url.startsWith('./') ? `${href}/.${url}`
+          : url;
     return {
       text: rule.cssText,
       format: getFontMimeTypeFromUrl(fullUrl),
@@ -129,7 +129,13 @@
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.src = href;
-        img.onerror = () => reject(new Error(`Could not load ${href}`));
+        img.onerror = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', canvas.toDataURL('image/png'));
+          resolve(true);
+        }
         img.onload = () => {
           canvas.width = img.width;
           canvas.height = img.height;
@@ -152,7 +158,7 @@
           // TODO: it may also be worth it to wait until fonts are fully loaded before
           // attempting to rasterize them. (e.g. use https://developer.mozilla.org/en-US/docs/Web/API/FontFaceSet)
           const fontInBase64 = arrayBufferToBase64(req.response);
-          const fontUri = font.text.replace(urlRegex, `url("data:${font.format};base64,${fontInBase64}")`)+'\n';
+          const fontUri = font.text.replace(urlRegex, `url("data:${font.format};base64,${fontInBase64}")`) + '\n';
           cachedFonts[font.url] = fontUri;
           resolve(fontUri);
         });
@@ -177,7 +183,7 @@
     if (cachedRules) return cachedRules;
     return cachedRules = Array.from(document.styleSheets).map(sheet => {
       try {
-        return {rules: sheet.cssRules, href: sheet.href};
+        return { rules: sheet.cssRules, href: sheet.href };
       } catch (e) {
         console.warn(`Stylesheet could not be loaded: ${sheet.href}`, e);
         return {};
@@ -201,7 +207,7 @@
     const css = [];
     const detectFonts = typeof fonts === 'undefined';
     const fontList = fonts || [];
-    styleSheetRules().forEach(({rules, href}) => {
+    styleSheetRules().forEach(({ rules, href }) => {
       if (!rules) return;
       Array.from(rules).forEach(rule => {
         if (typeof rule.style != 'undefined') {
@@ -221,7 +227,7 @@
 
   const downloadOptions = () => {
     if (!navigator.msSaveOrOpenBlob && !('download' in document.createElement('a'))) {
-      return {popup: window.open()};
+      return { popup: window.open() };
     }
   };
 
@@ -240,14 +246,14 @@
     return inlineImages(el).then(() => {
       let clone = el.cloneNode(true);
       clone.style.backgroundColor = (options || {}).backgroundColor || el.style.backgroundColor;
-      const {width, height} = getDimensions(el, clone, w, h);
+      const { width, height } = getDimensions(el, clone, w, h);
 
       if (el.tagName !== 'svg') {
         if (el.getBBox) {
           if (clone.getAttribute('transform') != null) {
             clone.setAttribute('transform', clone.getAttribute('transform').replace(/translate\(.*?\)/, ''));
           }
-          const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           svg.appendChild(clone);
           clone = svg;
         } else {
@@ -279,7 +285,7 @@
         outer.appendChild(clone);
         const src = outer.innerHTML;
         if (typeof done === 'function') done(src, width, height);
-        else return {src, width, height};
+        else return { src, width, height };
       } else {
         return inlineCss(el, options).then(css => {
           const style = document.createElement('style');
@@ -295,7 +301,7 @@
           const src = outer.innerHTML.replace(/NS\d+:href/gi, 'xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href');
 
           if (typeof done === 'function') done(src, width, height);
-          else return {src, width, height};
+          else return { src, width, height };
         });
       }
     });
@@ -304,12 +310,12 @@
   out$.svgAsDataUri = (el, options, done) => {
     requireDomNode(el);
     return out$.prepareSvg(el, options)
-      .then(({src, width, height}) => {
-          const svgXml = `data:image/svg+xml;base64,${window.btoa(reEncode(doctype+src))}`;
-          if (typeof done === 'function') {
-              done(svgXml, width, height);
-          }
-          return svgXml;
+      .then(({ src, width, height }) => {
+        const svgXml = `data:image/svg+xml;base64,${window.btoa(reEncode(doctype + src))}`;
+        if (typeof done === 'function') {
+          done(svgXml, width, height);
+        }
+        return svgXml;
       });
   };
 
@@ -321,7 +327,7 @@
       canvg
     } = options || {};
 
-    const convertToPng = ({src, width, height}) => {
+    const convertToPng = ({ src, width, height }) => {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       const pixelRatio = window.devicePixelRatio || 1;
