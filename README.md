@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-npm install save-svg-as-png
+npm i svg-to-image-custom
 ```
 
 ## Prerequisites
